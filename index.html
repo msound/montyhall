@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Monty Hall Simulation</title>
+    <script type="text/javascript">
+        var states = ['door', 'door', 'door'];
+        var emojis = {
+            'door': '🚪',
+            'goat': '🐐',
+            'car': '🚗'
+        }
+        var carIndex = getRandomIndex();
+        var revealIndex = null;
+        var firstChoice = null;
+        var gameState = 0; // 0 - initial, 1 - one door opened, 2 - final
+        var results = {
+            'stay': {
+                'win': 0,
+                'lose': 0
+            },
+            'switch': {
+                'win': 0,
+                'lose': 0
+            }
+        };
+        window.onload = function() {
+            renderStates();
+        }
+        function renderStates() {
+            states.forEach(function(state, index) {
+                var door = document.getElementById('door' + index);
+                door.innerHTML = emojis[state];
+            });
+        }
+        function openDoor(index) {
+            if (gameState === 0) {
+                if (index === carIndex) {
+                    var goatIndices = [0, 1, 2].filter(function(i) {
+                        return i !== carIndex;
+                    });
+                    var goatIndex = goatIndices[Math.floor(Math.random() * 2)];
+                    states[goatIndex] = 'goat';
+                    revealIndex = goatIndex;
+                } else {
+                    var goatIndices = [0, 1, 2].filter(function(i) {
+                        return i !== carIndex && i !== index;
+                    });
+                    var goatIndex = goatIndices[0];
+                    states[goatIndex] = 'goat';
+                    revealIndex = goatIndex;
+                }
+                gameState = 1;
+                firstChoice = index;
+                renderStates();
+                updateMessage('Stay or switch?');
+            }
+            else if (gameState === 1) {
+                if (index === revealIndex) {
+                    // clicked on already revealed door, take no action
+                    return;
+                }
+                states[0] = carIndex === 0 ? 'car' : 'goat';
+                states[1] = carIndex === 1 ? 'car' : 'goat';
+                states[2] = carIndex === 2 ? 'car' : 'goat';
+                renderStates();
+                if (index === carIndex) {
+                    if (firstChoice === index) {
+                        results.stay.win++;
+                        highlightResult('stay', 'win');
+                    } else {
+                        highlightResult('switch', 'win');
+                        results.switch.win++;
+                    }
+                    updateMessage('😎 You win! Click anywhere to play again.');
+                } else {
+                    if (firstChoice === index) {
+                        highlightResult('stay', 'lose');
+                        results.stay.lose++;
+                    } else {
+                        highlightResult('switch', 'lose');
+                        results.switch.lose++;
+                    }
+                    updateMessage('😢 You lose! Click anywhere to play again.');
+                }
+                gameState = 2;
+                updateResults();
+            }
+            else if (gameState === 2) {
+                states = ['door', 'door', 'door'];
+                carIndex = getRandomIndex();
+                gameState = 0;
+                firstChoice = null;
+                revealIndex = null;
+                renderStates();
+                clearHighlights();
+                updateMessage('Pick a door.');
+            }
+        }
+        function updateResults() {
+            var stayWin = document.getElementById('stay-win');
+            var stayLose = document.getElementById('stay-lose');
+            var stayPercent = document.getElementById('stay-percent');
+            var switchWin = document.getElementById('switch-win');
+            var switchLose = document.getElementById('switch-lose');
+            var switchPercent = document.getElementById('switch-percent');
+            stayWin.innerHTML = results.stay.win;
+            stayLose.innerHTML = results.stay.lose;
+            if (results.stay.win + results.stay.lose === 0) {
+                stayPercent.innerHTML = '0%';
+            } else {
+                stayPercent.innerHTML = (results.stay.win / (results.stay.win + results.stay.lose) * 100).toFixed(2) + '%';
+            }
+            switchWin.innerHTML = results.switch.win;
+            switchLose.innerHTML = results.switch.lose;
+            if (results.switch.win + results.switch.lose === 0) {
+                switchPercent.innerHTML = '0%';
+            } else {
+                switchPercent.innerHTML = (results.switch.win / (results.switch.win + results.switch.lose) * 100).toFixed(2) + '%';
+            }
+        }
+        function highlightResult(scenario, win) {
+            var td = document.getElementById(scenario + '-' + win);
+            td.classList.add('highlight');
+        }
+        function clearHighlights() {
+            var tds = document.querySelectorAll('td.highlight');
+            tds.forEach(function(td) {
+                td.classList.remove('highlight');
+            });
+        }
+        function updateMessage(message) {
+            var messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = '<p>' + message + '</p>';
+        }
+        function getRandomIndex() {
+            const a = new Uint8Array(1);
+            window.crypto.getRandomValues(a);
+            return a[0] % 3;
+        }
+    </script>
+    <style type="text/css">
+        #app {
+            width: 400px;
+            text-align: center;
+        }
+        #message {
+            font-size: 80%;
+        }
+        .door {
+            display: inline-block;
+            font-size: 4em;
+            margin: 0 20px;
+            cursor: pointer;
+        }
+        table#results {
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        table#results th, table#results td {
+            padding: 5px 20px;
+            text-align: center;
+        }
+        table#results td.win.highlight {
+            background-color: lightgreen;
+        }
+        table#results td.lose.highlight {
+            background-color: lightcoral;
+        }
+    </style>
+</head>
+<body>
+    <h1>Monty Hall Simulation</h1>
+    <div id="app">
+        <div id="doors">
+            <div class="door" id="door0" onclick="javascript:openDoor(0);">🚪</div>
+            <div class="door" id="door1" onclick="javascript:openDoor(1);">🚪</div>
+            <div class="door" id="door2" onclick="javascript:openDoor(2);">🚪</div>
+        </div>
+        <div id="message">
+            <p>Pick a door.</p>
+        </div>
+        <div id="results">
+            <table id="results">
+                <tr>
+                    <th></th>
+                    <th>Win</th>
+                    <th>Lose</th>
+                    <th>Win %</th>
+                </tr>
+                <tr>
+                    <td>Stay</td>
+                    <td id="stay-win" class="win">0</td>
+                    <td id="stay-lose" class="lose">0</td>
+                    <td id=stay-percent>0%</td>
+                </tr>
+                <tr>
+                    <td>Switch</td>
+                    <td id="switch-win" class="win">0</td>
+                    <td id="switch-lose" class="lose">0</td>
+                    <td id="switch-percent">0%</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
